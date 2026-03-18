@@ -2,8 +2,11 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
+import { MemoryDatabase } from './db/database.js';
 
 dotenv.config();
+
+const db = new MemoryDatabase(process.env.MEMORY_DB_PATH);
 
 const server = new Server(
   {
@@ -59,6 +62,11 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('SuperMemory MCP Server running on stdio');
+  
+  process.on('SIGINT', () => {
+    db.close();
+    process.exit(0);
+  });
 }
 
 main().catch(console.error);
