@@ -62,11 +62,11 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('SuperMemory MCP Server running on stdio');
-  
-  process.on('SIGINT', () => {
-    db.close();
-    process.exit(0);
-  });
 }
+
+process.on('SIGINT', () => {
+  db.close();
+  process.exit(0);
+});
 
 main().catch(console.error);

@@ -17,8 +17,12 @@ export class MemoryDatabase {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    this.db = new Database(resolvedPath);
-    this.initialize();
+    try {
+      this.db = new Database(resolvedPath);
+      this.initialize();
+    } catch (err) {
+      throw new Error(`Failed to initialize database at ${resolvedPath}: ${err}`);
+    }
   }
 
   private initialize() {
