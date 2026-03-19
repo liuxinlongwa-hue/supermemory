@@ -20,348 +20,210 @@ const exportManager = new ExportManager(db);
 const searchEngine = new SearchEngine(db);
 
 const server = new Server(
-  {
-    name: 'supermemory',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
+  { name: 'supermemory', version: '2.0.0' },
+  { capabilities: { tools: {} } }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: 'add_memory',
-        description: '添加新记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            content: { type: 'string', description: '记忆内容' },
-            type: { 
-              type: 'string', 
-              enum: ['episodic', 'semantic', 'procedural', 'project', 'session', 'habit'],
-              description: '记忆类型'
-            },
-            importance: { type: 'number', enum: [0, 1, 2], description: '重要性等级' },
-            project_path: { type: 'string', description: '项目路径（可选）' }
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: 'memory',
+      description: '记忆操作：add(添加) | search(搜索) | get(获取) | delete(删除) | list(列表) | mark(标记重要) | invalidate(失效)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { 
+            type: 'string', 
+            enum: ['add', 'search', 'get', 'delete', 'list', 'mark', 'invalidate'],
+            description: '操作类型'
           },
-          required: ['content', 'type']
-        }
-      },
-      {
-        name: 'search_memory',
-        description: '搜索记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: { type: 'string', description: '搜索查询' },
-            types: { type: 'array', items: { type: 'string' }, description: '记忆类型过滤' },
-            limit: { type: 'number', description: '返回数量限制' },
-            project_path: { type: 'string', description: '项目路径过滤' }
+          content: { type: 'string', description: '记忆内容(add)' },
+          type: { 
+            type: 'string', 
+            enum: ['episodic', 'semantic', 'procedural', 'project', 'session', 'habit'],
+            description: '记忆类型(add)'
           },
-          required: ['query']
-        }
-      },
-      {
-        name: 'get_memory',
-        description: '获取指定记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: '记忆ID' }
+          importance: { type: 'number', enum: [0, 1, 2], description: '重要性(add/mark)' },
+          query: { type: 'string', description: '搜索词(search)' },
+          id: { type: 'string', description: '记忆ID(get/delete/mark/invalidate)' },
+          level: { type: 'number', enum: [0, 1, 2], description: '重要性等级(mark)' },
+          list_type: { 
+            type: 'string', 
+            enum: ['project', 'recent', 'important', 'long_term'],
+            description: '列表类型(list)'
           },
-          required: ['id']
-        }
-      },
-      {
-        name: 'delete_memory',
-        description: '删除记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: '记忆ID' }
-          },
-          required: ['id']
-        }
-      },
-      {
-        name: 'get_project_memories',
-        description: '获取项目相关记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            project_path: { type: 'string', description: '项目路径' }
-          },
-          required: ['project_path']
-        }
-      },
-      {
-        name: 'get_long_term_memories',
-        description: '获取长期记忆（重要等级1或2）',
-        inputSchema: {
-          type: 'object',
-          properties: {}
-        }
-      },
-      {
-        name: 'get_recent_memories',
-        description: '获取最近记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            hours: { type: 'number', description: '时间范围（小时，默认24）' }
-          }
-        }
-      },
-      {
-        name: 'mark_important',
-        description: '标记记忆重要性',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: '记忆ID' },
-            level: { type: 'number', enum: [0, 1, 2], description: '重要性等级' }
-          },
-          required: ['id', 'level']
-        }
-      },
-      {
-        name: 'get_important_memories',
-        description: '获取重要记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {}
-        }
-      },
-      {
-        name: 'add_relation',
-        description: '添加实体关系',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            subject: { type: 'string', description: '主体实体' },
-            predicate: { type: 'string', description: '关系类型' },
-            object: { type: 'string', description: '客体实体' }
-          },
-          required: ['subject', 'predicate', 'object']
-        }
-      },
-      {
-        name: 'query_relations',
-        description: '查询实体关系',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            entity: { type: 'string', description: '实体名称' },
-            depth: { type: 'number', description: '查询深度（1或2）' }
-          },
-          required: ['entity']
-        }
-      },
-      {
-        name: 'invalidate_fact',
-        description: '使记忆失效',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', description: '记忆ID' },
-            reason: { type: 'string', description: '失效原因（可选）' }
-          },
-          required: ['id']
-        }
-      },
-      {
-        name: 'query_timeline',
-        description: '按时间范围查询记忆',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            from: { type: 'number', description: '开始时间戳' },
-            to: { type: 'number', description: '结束时间戳' }
-          },
-          required: ['from', 'to']
-        }
-      },
-      {
-        name: 'give_feedback',
-        description: '对记忆给出反馈',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            memory_id: { type: 'string', description: '记忆ID' },
-            type: { type: 'string', enum: ['positive', 'negative', 'correction'], description: '反馈类型' },
-            comment: { type: 'string', description: '反馈评论（可选）' }
-          },
-          required: ['memory_id', 'type']
-        }
-      },
-      {
-        name: 'trigger_optimization',
-        description: '触发质量优化',
-        inputSchema: {
-          type: 'object',
-          properties: {}
-        }
-      },
-      {
-        name: 'export_memory',
-        description: '导出记忆数据',
-        inputSchema: {
-          type: 'object',
-          properties: {}
-        }
-      },
-      {
-        name: 'import_memory',
-        description: '导入记忆数据',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            data: { type: 'string', description: 'JSON格式的记忆数据' }
-          },
-          required: ['data']
-        }
+          project_path: { type: 'string', description: '项目路径(add/list)' },
+          hours: { type: 'number', description: '时间范围小时数(list recent)' },
+          reason: { type: 'string', description: '失效原因(invalidate)' },
+          limit: { type: 'number', description: '返回数量(search/list)' }
+        },
+        required: ['action']
       }
-    ]
-  };
-});
+    },
+    {
+      name: 'knowledge',
+      description: '知识图谱：add(添加关系) | query(查询关系)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['add', 'query'], description: '操作类型' },
+          subject: { type: 'string', description: '主体(add)' },
+          predicate: { type: 'string', description: '关系(add)' },
+          object: { type: 'string', description: '客体(add)' },
+          entity: { type: 'string', description: '查询实体(query)' },
+          depth: { type: 'number', description: '查询深度1-2(query)' }
+        },
+        required: ['action']
+      }
+    },
+    {
+      name: 'optimize',
+      description: '优化系统：feedback(反馈) | trigger(触发优化)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['feedback', 'trigger'], description: '操作类型' },
+          memory_id: { type: 'string', description: '记忆ID(feedback)' },
+          type: { type: 'string', enum: ['positive', 'negative', 'correction'], description: '反馈类型(feedback)' },
+          comment: { type: 'string', description: '评论(feedback)' }
+        },
+        required: ['action']
+      }
+    },
+    {
+      name: 'backup',
+      description: '备份操作：export(导出) | import(导入)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['export', 'import'], description: '操作类型' },
+          data: { type: 'string', description: 'JSON数据(import)' }
+        },
+        required: ['action']
+      }
+    }
+  ]
+}));
+
+function formatMemories(memories: any[]): string {
+  if (!memories || memories.length === 0) return '[]';
+  return memories.map(m => ({
+    id: m.id?.slice(0, 8),
+    content: m.content?.length > 100 ? m.content.slice(0, 100) + '...' : m.content,
+    type: m.type,
+    imp: m.importance
+  })).map(m => `[${m.id}] ${m.content} (${m.type}, imp:${m.imp})`).join('\n');
+}
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  
+  const a = args as any;
+
   switch (name) {
-    case 'add_memory':
-      const addId = memoryManager.addMemory(args as any);
-      const addArgs = args as any;
-      await searchEngine.indexMemory(addId, addArgs.content);
-      return {
-        content: [{ type: 'text', text: `Memory added successfully. ID: ${addId}` }]
-      };
-
-    case 'search_memory':
-      const searchResults = await searchEngine.search(args as any);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(searchResults, null, 2) }]
-      };
-
-    case 'get_memory':
-      const memory = memoryManager.getMemory((args as any).id);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(memory, null, 2) }]
-      };
-
-    case 'delete_memory':
-      const deleted = memoryManager.deleteMemory((args as any).id);
-      return {
-        content: [{ type: 'text', text: deleted ? 'Memory deleted successfully' : 'Memory not found' }]
-      };
-
-    case 'get_project_memories':
-      const projectMemories = memoryManager.getProjectMemories((args as any).project_path);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(projectMemories, null, 2) }]
-      };
-
-    case 'get_long_term_memories':
-      const longTermMemories = memoryManager.getLongTermMemories();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(longTermMemories, null, 2) }]
-      };
-
-    case 'get_recent_memories':
-      const recentMemories = memoryManager.getRecentMemories((args as any).hours);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(recentMemories, null, 2) }]
-      };
-
-    case 'mark_important':
-      const marked = memoryManager.markImportant((args as any).id, (args as any).level);
-      return {
-        content: [{ type: 'text', text: marked ? 'Importance updated' : 'Memory not found' }]
-      };
-
-    case 'get_important_memories':
-      const importantMemories = memoryManager.getImportantMemories();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(importantMemories, null, 2) }]
-      };
-
-    case 'add_relation': {
-      const { subject, predicate, object: objectEntity } = args as any;
-      let subjectEntity = graphManager.getEntityByName(subject);
-      if (!subjectEntity) {
-        const subjectId = graphManager.addEntity(subject);
-        subjectEntity = { id: subjectId };
+    case 'memory': {
+      switch (a.action) {
+        case 'add': {
+          const id = memoryManager.addMemory({
+            content: a.content,
+            type: a.type,
+            importance: a.importance,
+            project_path: a.project_path
+          });
+          await searchEngine.indexMemory(id, a.content);
+          return { content: [{ type: 'text', text: `✓ 已添加 [${id.slice(0,8)}]` }] };
+        }
+        case 'search': {
+          const results = await searchEngine.search({ query: a.query, limit: a.limit || 5 });
+          return { content: [{ type: 'text', text: formatMemories(results) || '未找到' }] };
+        }
+        case 'get': {
+          const m = memoryManager.getMemory(a.id);
+          if (!m) return { content: [{ type: 'text', text: '未找到' }] };
+          return { content: [{ type: 'text', text: JSON.stringify(m, null, 2) }] };
+        }
+        case 'delete': {
+          const ok = memoryManager.deleteMemory(a.id);
+          return { content: [{ type: 'text', text: ok ? '✓ 已删除' : '未找到' }] };
+        }
+        case 'list': {
+          let memories;
+          switch (a.list_type) {
+            case 'project': memories = memoryManager.getProjectMemories(a.project_path); break;
+            case 'recent': memories = memoryManager.getRecentMemories(a.hours || 24); break;
+            case 'important': memories = memoryManager.getImportantMemories(); break;
+            case 'long_term': memories = memoryManager.getLongTermMemories(); break;
+            default: memories = memoryManager.getAllMemories();
+          }
+          const limited = memories.slice(0, a.limit || 10);
+          return { content: [{ type: 'text', text: formatMemories(limited) }] };
+        }
+        case 'mark': {
+          const ok = memoryManager.markImportant(a.id, a.level);
+          return { content: [{ type: 'text', text: ok ? `✓ 已标记为 ${a.level}` : '未找到' }] };
+        }
+        case 'invalidate': {
+          const ok = memoryManager.invalidateFact(a.id, a.reason);
+          return { content: [{ type: 'text', text: ok ? '✓ 已失效' : '未找到' }] };
+        }
+        default:
+          return { content: [{ type: 'text', text: '未知操作' }] };
       }
-      let objectEnt = graphManager.getEntityByName(objectEntity);
-      if (!objectEnt) {
-        const objectId = graphManager.addEntity(objectEntity);
-        objectEnt = { id: objectId };
-      }
-      const relationId = graphManager.addRelation((subjectEntity as any).id, predicate, (objectEnt as any).id);
-      return {
-        content: [{ type: 'text', text: `Relation added successfully. ID: ${relationId}` }]
-      };
     }
 
-    case 'query_relations': {
-      const { entity, depth } = args as any;
-      const entityRecord = graphManager.getEntityByName(entity);
-      if (!entityRecord) {
-        return {
-          content: [{ type: 'text', text: 'Entity not found' }]
-        };
+    case 'knowledge': {
+      switch (a.action) {
+        case 'add': {
+          let s = graphManager.getEntityByName(a.subject);
+          if (!s) s = { id: graphManager.addEntity(a.subject) };
+          let o = graphManager.getEntityByName(a.object);
+          if (!o) o = { id: graphManager.addEntity(a.object) };
+          const id = graphManager.addRelation((s as any).id, a.predicate, (o as any).id);
+          return { content: [{ type: 'text', text: `✓ 已添加关系 [${id.slice(0,8)}]` }] };
+        }
+        case 'query': {
+          const e = graphManager.getEntityByName(a.entity);
+          if (!e) return { content: [{ type: 'text', text: '实体未找到' }] };
+          const relations = graphManager.queryRelations((e as any).id, a.depth || 1);
+          const formatted = relations.map((r: any) => 
+            `${r.subject_name} --${r.predicate}--> ${r.object_name}`
+          ).join('\n') || '无关系';
+          return { content: [{ type: 'text', text: formatted }] };
+        }
+        default:
+          return { content: [{ type: 'text', text: '未知操作' }] };
       }
-      const relations = graphManager.queryRelations((entityRecord as any).id, depth ?? 1);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(relations, null, 2) }]
-      };
     }
 
-    case 'invalidate_fact':
-      const invalidated = memoryManager.invalidateFact((args as any).id, (args as any).reason);
-      return {
-        content: [{ type: 'text', text: invalidated ? 'Memory invalidated' : 'Memory not found' }]
-      };
-
-    case 'query_timeline':
-      const timelineMemories = memoryManager.queryTimeline((args as any).from, (args as any).to);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(timelineMemories, null, 2) }]
-      };
-
-    case 'give_feedback':
-      const feedbackId = feedbackManager.giveFeedback((args as any).memory_id, (args as any).type, (args as any).comment);
-      return {
-        content: [{ type: 'text', text: `Feedback recorded. ID: ${feedbackId}` }]
-      };
-
-    case 'trigger_optimization':
-      const optimizationResult = feedbackManager.triggerOptimization();
-      return {
-        content: [{ type: 'text', text: `Optimization completed. Processed: ${optimizationResult.processed} memories` }]
-      };
-
-    case 'export_memory':
-      const exportedData = exportManager.exportMemory();
-      return {
-        content: [{ type: 'text', text: exportedData }]
-      };
-
-    case 'import_memory':
-      const importResult = exportManager.importMemory((args as any).data);
-      if (importResult.error) {
-        return {
-          content: [{ type: 'text', text: `Import failed: ${importResult.error}` }]
-        };
+    case 'optimize': {
+      switch (a.action) {
+        case 'feedback': {
+          const id = feedbackManager.giveFeedback(a.memory_id, a.type, a.comment);
+          return { content: [{ type: 'text', text: `✓ 已记录反馈` }] };
+        }
+        case 'trigger': {
+          const result = feedbackManager.triggerOptimization();
+          return { content: [{ type: 'text', text: `✓ 已优化 ${result.processed} 条记忆` }] };
+        }
+        default:
+          return { content: [{ type: 'text', text: '未知操作' }] };
       }
-      return {
-        content: [{ type: 'text', text: `Import completed. Imported: ${importResult.imported} memories` }]
-      };
+    }
+
+    case 'backup': {
+      switch (a.action) {
+        case 'export': {
+          const data = exportManager.exportMemory();
+          return { content: [{ type: 'text', text: data }] };
+        }
+        case 'import': {
+          const result = exportManager.importMemory(a.data);
+          if (result.error) return { content: [{ type: 'text', text: `✗ ${result.error}` }] };
+          return { content: [{ type: 'text', text: `✓ 已导入 ${result.imported} 条` }] };
+        }
+        default:
+          return { content: [{ type: 'text', text: '未知操作' }] };
+      }
+    }
 
     default:
       throw new Error(`Unknown tool: ${name}`);
@@ -371,12 +233,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('SuperMemory MCP Server running on stdio');
+  console.error('SuperMemory MCP Server v2.0 running');
 }
 
-process.on('SIGINT', () => {
-  db.close();
-  process.exit(0);
-});
+process.on('SIGINT', () => { db.close(); process.exit(0); });
 
 main().catch(console.error);

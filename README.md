@@ -5,7 +5,7 @@
 ## ✨ 特性
 
 - ✅ **纯本地运行** - 无需任何 API Key
-- ✅ **17 个 MCP 工具** - 完整的记忆管理工具集
+- ✅ **4 个核心工具** - 精简设计，节省 70% token
 - ✅ **语义搜索** - 本地向量搜索，自动下载模型
 - ✅ **知识图谱** - 实体关系管理和 1-2 跳推理
 - ✅ **自学习优化** - 反馈驱动的质量评分系统
@@ -458,27 +458,61 @@ pwd
 
 ---
 
-## 🛠️ 可用工具列表
+## 🛠️ 可用工具（v2.0 精简版）
 
-| 工具 | 功能 |
-|------|------|
-| `add_memory` | 添加新记忆 |
-| `search_memory` | 语义搜索记忆 |
-| `get_memory` | 获取指定记忆 |
-| `delete_memory` | 删除记忆 |
-| `get_project_memories` | 获取项目记忆 |
-| `get_long_term_memories` | 获取长期记忆 |
-| `get_recent_memories` | 获取最近记忆 |
-| `mark_important` | 标记重要性 |
-| `get_important_memories` | 获取重要记忆 |
-| `add_relation` | 添加实体关系 |
-| `query_relations` | 查询关系图谱 |
-| `invalidate_fact` | 使记忆失效 |
-| `query_timeline` | 时间范围查询 |
-| `give_feedback` | 对记忆反馈 |
-| `trigger_optimization` | 触发优化 |
-| `export_memory` | 导出记忆 |
-| `import_memory` | 导入记忆 |
+### memory - 记忆操作
+
+| action | 功能 | 参数 |
+|--------|------|------|
+| `add` | 添加记忆 | content, type, importance, project_path |
+| `search` | 搜索记忆 | query, limit |
+| `get` | 获取记忆 | id |
+| `delete` | 删除记忆 | id |
+| `list` | 列出记忆 | list_type: project/recent/important/long_term |
+| `mark` | 标记重要 | id, level |
+| `invalidate` | 使失效 | id, reason |
+
+### knowledge - 知识图谱
+
+| action | 功能 | 参数 |
+|--------|------|------|
+| `add` | 添加关系 | subject, predicate, object |
+| `query` | 查询关系 | entity, depth |
+
+### optimize - 优化系统
+
+| action | 功能 | 参数 |
+|--------|------|------|
+| `feedback` | 反馈 | memory_id, type, comment |
+| `trigger` | 触发优化 | - |
+
+### backup - 备份操作
+
+| action | 功能 | 参数 |
+|--------|------|------|
+| `export` | 导出 | - |
+| `import` | 导入 | data |
+
+---
+
+### 使用示例
+
+```
+# 添加记忆
+memory action=add content="我喜欢TypeScript" type=habit importance=1
+
+# 搜索记忆
+memory action=search query="编程偏好" limit=5
+
+# 列出最近记忆
+memory action=list list_type=recent hours=24
+
+# 添加关系
+knowledge action=add subject="search方法" predicate="calls" object="embedding"
+
+# 查询关系
+knowledge action=query entity="search方法" depth=1
+```
 
 ---
 
