@@ -18,11 +18,13 @@ const graphManager = new GraphManager(db);
 const feedbackManager = new FeedbackManager(db);
 const exportManager = new ExportManager(db);
 
-const embeddingClient = new EmbeddingClient({
-  baseUrl: process.env.EMBEDDING_BASE_URL!,
-  apiKey: process.env.EMBEDDING_API_KEY!,
-  modelId: process.env.EMBEDDING_MODEL_ID!
-});
+const embeddingClient = process.env.EMBEDDING_BASE_URL && process.env.EMBEDDING_API_KEY
+  ? new EmbeddingClient({
+      baseUrl: process.env.EMBEDDING_BASE_URL,
+      apiKey: process.env.EMBEDDING_API_KEY,
+      modelId: process.env.EMBEDDING_MODEL_ID || 'text-embedding-v3'
+    })
+  : null;
 
 const searchEngine = new SearchEngine(db, embeddingClient);
 
