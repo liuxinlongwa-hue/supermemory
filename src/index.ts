@@ -33,11 +33,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: 'memory',
-      description: '记忆操作：add(添加) | search(搜索) | get(获取) | delete(删除) | list(列表) | mark(标记重要) | invalidate(失效)',
+      description: '记忆操作：add(添加) | search(搜索) | get(获取) | delete(删除) | list(列表) | mark(标记重要) | invalidate(失效) | clear(清空)',
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['add', 'search', 'get', 'delete', 'list', 'mark', 'invalidate'], description: '操作类型' },
+          action: { type: 'string', enum: ['add', 'search', 'get', 'delete', 'list', 'mark', 'invalidate', 'clear'], description: '操作类型' },
           content: { type: 'string', description: '记忆内容(add)' },
           type: { type: 'string', enum: ['episodic', 'semantic', 'procedural', 'project', 'session', 'habit'], description: '记忆类型(add)' },
           importance: { type: 'number', enum: [0, 1, 2], description: '重要性(add/mark)' },
@@ -178,6 +178,10 @@ async function handleTool(name: string, a: any) {
         case 'invalidate': {
           const ok = memoryManager.invalidateFact(a.id, a.reason);
           return { content: [{ type: 'text', text: ok ? '✓ 已失效' : '未找到' }] };
+        }
+        case 'clear': {
+          memoryManager.clearAllMemories();
+          return { content: [{ type: 'text', text: '✓ 已清空所有记忆（保留默认设置）' }] };
         }
         default:
           return { content: [{ type: 'text', text: '未知操作' }] };

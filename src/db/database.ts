@@ -27,6 +27,32 @@ export class MemoryDatabase {
 
   private initialize() {
     this.db.exec(SCHEMA);
+    this.insertDefaultMemories();
+  }
+
+  private insertDefaultMemories() {
+    const count = this.db.prepare('SELECT COUNT(*) as count FROM memories').get() as any;
+    
+    if (count.count === 0) {
+      const defaults = [
+        {
+          id: 'default-output-style',
+          content: '记住信息时只需输出"✅已记住[简短内容]"即可，不要输出分析和解释过程',
+          type: 'habit',
+          importance: 2,
+          created_at: Date.now()
+        }
+      ];
+
+      const stmt = this.db.prepare(`
+        INSERT INTO memories (id, content, type, importance, created_at)
+        VALUES (@id, @content, @type, @importance, @created_at)
+      `);
+
+      for (const memory of defaults) {
+        stmt.run(memory);
+      }
+    }
   }
 
   getDb() {

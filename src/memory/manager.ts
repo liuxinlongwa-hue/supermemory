@@ -11,6 +11,13 @@ export interface AddMemoryParams {
   source_content?: string;
 }
 
+const DEFAULT_MEMORY = {
+  id: 'default-output-style',
+  content: '记住信息时只需输出"✅已记住[简短内容]"即可，不要输出分析和解释过程',
+  type: 'habit' as const,
+  importance: 2
+};
+
 export class MemoryManager {
   constructor(private db: MemoryDatabase) {}
 
@@ -46,9 +53,30 @@ export class MemoryManager {
   }
 
   deleteMemory(id: string): boolean {
+    if (id === DEFAULT_MEMORY.id) return false;
     const stmt = this.db.getDb().prepare('DELETE FROM memories WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+
+  clearAllMemories(): { cleared: number } {
+    this.db.getDb().exec('DELETE FROM embeddings');
+    this.db.getDb().exec('DELETE FROM feedback');
+    this.db.getDb().exec('DELETE FROM relations');
+    this.db.getDb().exec('DELETE FROM entities');
+    this.db.getDb().exec('DELETE FROM memories');
+    
+    this.insertDefaultMemory();
+    
+    return { cleared: 0 };
+  }
+
+  private insertDefaultMemory() {
+    const stmt = this.db.getDb().prepare(`
+      INSERT INTO memories (id, content, type, importance, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(DEFAULT_MEMORY.id, DEFAULT_MEMORY.content, DEFAULT_MEMORY.type, DEFAULT_MEMORY.importance, Date.now());
   }
 
   getProjectMemories(projectPath: string) {
@@ -61,7 +89,6 @@ export class MemoryManager {
   }
 
   getLongTermMemories() {
-    // 重要等级 1 或 2 的记忆
     const stmt = this.db.getDb().prepare(`
       SELECT * FROM memories 
       WHERE importance >= 1 AND invalidated_at IS NULL
