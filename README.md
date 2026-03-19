@@ -175,28 +175,274 @@ Loading model...
 
 ---
 
-## 🔧 配置 Claude Desktop（可选）
+## 🔧 配置各种 AI 工具
 
-如果你想用在 Claude Desktop，配置方法类似：
+SuperMemory 支持所有 MCP 兼容的 AI 工具。选择你使用的工具：
 
-1. 打开配置文件：
-   ```bash
-   open ~/Library/Application\ Support/Claude/claude_desktop_config.json
-   ```
+---
 
-2. 添加配置：
-   ```json
-   {
-     "mcpServers": {
-       "supermemory": {
-         "command": "node",
-         "args": ["/你的项目路径/supermemory/dist/index.js"]
-       }
-     }
-   }
-   ```
+### OpenCode
 
-3. 重启 Claude Desktop
+**配置文件位置：** `~/.config/opencode/opencode.json`
+
+```bash
+# 打开配置文件
+open ~/.config/opencode/opencode.json
+```
+
+**添加配置：**
+```json
+{
+  "mcp": {
+    "supermemory": {
+      "type": "local",
+      "command": ["node", "/你的路径/supermemory/dist/index.js"],
+      "enabled": true
+    }
+  }
+}
+```
+
+---
+
+### Claude Desktop
+
+**配置文件位置：**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+```bash
+# macOS 打开配置文件
+open ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+**添加配置：**
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "command": "node",
+      "args": ["/你的路径/supermemory/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+### Cursor
+
+**配置文件位置：** 项目根目录下的 `.cursor/mcp.json`
+
+```bash
+# 在项目目录创建配置
+mkdir -p .cursor
+touch .cursor/mcp.json
+```
+
+**添加配置：**
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "command": "node",
+      "args": ["/你的路径/supermemory/dist/index.js"]
+    }
+  }
+}
+```
+
+⚠️ **注意**：Cursor 需要在每个项目中单独配置，或者在用户目录配置全局 MCP。
+
+---
+
+### Windsurf
+
+**配置文件位置：** `~/.codeium/windsurf/mcp_config.json`
+
+```bash
+# 打开配置文件
+open ~/.codeium/windsurf/mcp_config.json
+```
+
+**添加配置：**
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "command": "node",
+      "args": ["/你的路径/supermemory/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+### Cline (VS Code 扩展)
+
+1. 打开 VS Code
+2. 点击左侧 Cline 图标
+3. 点击 ⚙️ 设置 → MCP Servers
+4. 点击 "Edit MCP Settings"
+5. 添加配置：
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "command": "node",
+      "args": ["/你的路径/supermemory/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+### Continue (VS Code 扩展)
+
+**配置文件位置：** `~/.continue/config.json`
+
+```bash
+# 打开配置文件
+open ~/.continue/config.json
+```
+
+**添加配置：**
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "stdio",
+          "command": "node",
+          "args": ["/你的路径/supermemory/dist/index.js"]
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Zed
+
+**配置文件位置：** `~/.config/zed/settings.json`
+
+```bash
+# 打开配置文件
+open ~/.config/zed/settings.json
+```
+
+**添加配置：**
+```json
+{
+  "mcp_servers": {
+    "supermemory": {
+      "command": "node",
+      "args": ["/你的路径/supermemory/dist/index.js"]
+    }
+  }
+}
+```
+
+---
+
+### Amazon Q Developer
+
+在 VS Code 中：
+1. 打开 Amazon Q 扩展设置
+2. 找到 MCP Server 配置
+3. 添加：
+
+```json
+{
+  "supermemory": {
+    "command": "node",
+    "args": ["/你的路径/supermemory/dist/index.js"]
+  }
+}
+```
+
+---
+
+### Goose
+
+**配置文件位置：** `~/.config/goose/config.yaml`
+
+```bash
+# 打开配置文件
+open ~/.config/goose/config.yaml
+```
+
+**添加配置：**
+```yaml
+mcp_servers:
+  supermemory:
+    command: node
+    args:
+      - /你的路径/supermemory/dist/index.js
+```
+
+---
+
+### Sage (macOS/iOS)
+
+Sage 使用图形界面配置：
+1. 打开 Sage 应用
+2. 进入 Settings → MCP Servers
+3. 点击 "+" 添加新服务器
+4. 填写：
+   - Name: `supermemory`
+   - Command: `node`
+   - Args: `/你的路径/supermemory/dist/index.js`
+
+---
+
+### 通义灵码 (Tongyi Lingma)
+
+在 VS Code 中：
+1. 打开通义灵码扩展设置
+2. 找到 MCP 配置选项
+3. 添加服务器配置
+
+---
+
+## 📝 配置格式总结
+
+| 工具 | 配置键名 | 配置文件位置 |
+|------|----------|--------------|
+| OpenCode | `"mcp"` | `~/.config/opencode/opencode.json` |
+| Claude Desktop | `"mcpServers"` | `~/Library/Application Support/Claude/...` |
+| Cursor | `"mcpServers"` | `.cursor/mcp.json` |
+| Windsurf | `"mcpServers"` | `~/.codeium/windsurf/mcp_config.json` |
+| Cline | `"mcpServers"` | VS Code 设置 |
+| Continue | `"experimental.modelContextProtocolServers"` | `~/.continue/config.json` |
+| Zed | `"mcp_servers"` | `~/.config/zed/settings.json` |
+
+---
+
+## ⚠️ 重要提示
+
+**所有配置都需要：**
+
+1. 把 `/你的路径/` 替换成你的实际项目路径
+2. 路径必须是**绝对路径**（以 `/` 开头）
+3. 重启 AI 工具让配置生效
+
+**获取你的路径：**
+```bash
+# 在 supermemory 项目目录下运行
+pwd
+```
+
+输出示例：`/Users/shashademac/Desktop/supermemory`
+
+完整配置示例：`/Users/shashademac/Desktop/supermemory/dist/index.js`
 
 ---
 
