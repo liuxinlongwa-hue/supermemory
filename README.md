@@ -522,7 +522,26 @@ AUTO_MEMORY=true
 
 ---
 
-## 🛠️ 可用工具（v2.1 精简版）
+## 🛠️ 可用工具（v1.1）
+
+### recall - 🔍 自动检索（重要！）
+
+**每次回答用户问题前，AI 会自动调用此工具检索相关记忆！**
+
+| 参数 | 说明 |
+|------|------|
+| query | 用户的问题或话题 |
+
+**使用示例：**
+```
+用户: "mybot 项目路径是什么？"
+     ↓
+AI 调用: recall(query="mybot 项目在哪里")
+     ↓
+返回: 📚 相关记忆：• mybot 项目路径是 /Users/.../mybot [重要1]
+     ↓
+AI 回答: mybot 项目路径是 /Users/shashademac/Desktop/mybot
+```
 
 ### memory - 记忆操作
 
