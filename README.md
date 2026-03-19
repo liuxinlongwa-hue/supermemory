@@ -535,6 +535,9 @@ AUTO_MEMORY=true
 | `list` | 列出记忆 | list_type: project/recent/important/long_term |
 | `mark` | 标记重要 | id, level |
 | `invalidate` | 使失效 | id, reason |
+| `clear` | 清空所有记忆（保留默认设置） | - |
+
+> ⚠️ **默认记忆**：系统会自动保留一条默认记忆，指导 AI 简洁输出。清空记忆时此记忆不会被删除。
 
 ### knowledge - 知识图谱
 
