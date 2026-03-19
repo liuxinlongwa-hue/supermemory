@@ -1,3 +1,7 @@
+import path from 'path';
+import os from 'os';
+import fs from 'fs';
+
 export class LocalEmbeddingClient {
   private extractor: any = null;
   private initialized = false;
@@ -10,7 +14,12 @@ export class LocalEmbeddingClient {
 
     this.initializing = (async () => {
       const { pipeline, env } = await import('@xenova/transformers');
-      env.allowLocalModels = false;
+      
+      const modelCacheDir = path.join(os.homedir(), '.supermemory', 'models');
+      if (!fs.existsSync(modelCacheDir)) {
+        fs.mkdirSync(modelCacheDir, { recursive: true });
+      }
+      env.cacheDir = modelCacheDir;
 
       this.extractor = await pipeline(
         'feature-extraction',
