@@ -4,11 +4,21 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import dotenv from 'dotenv';
 import { MemoryDatabase } from './db/database.js';
 import { MemoryManager } from './memory/manager.js';
+import { EmbeddingClient } from './embedding/client.js';
+import { SearchEngine } from './memory/search.js';
 
 dotenv.config();
 
 const db = new MemoryDatabase(process.env.MEMORY_DB_PATH);
 const memoryManager = new MemoryManager(db);
+
+const embeddingClient = new EmbeddingClient({
+  baseUrl: process.env.EMBEDDING_BASE_URL!,
+  apiKey: process.env.EMBEDDING_API_KEY!,
+  modelId: process.env.EMBEDDING_MODEL_ID!
+});
+
+const searchEngine = new SearchEngine(db, embeddingClient);
 
 const server = new Server(
   {
@@ -42,6 +52,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['content', 'type']
         }
+      },
+      {
+        name: 'search_memory',
+        description: '搜索记忆',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '搜索查询' },
+            types: { type: 'array', items: { type: 'string' }, description: '记忆类型过滤' },
+            limit: { type: 'number', description: '返回数量限制' },
+            project_path: { type: 'string', description: '项目路径过滤' }
+          },
+          required: ['query']
+        }
       }
     ]
   };
@@ -57,6 +81,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [{ 
           type: 'text', 
           text: `Memory added successfully. ID: ${memoryId}` 
+        }]
+      };
+    case 'search_memory':
+      const results = await searchEngine.search(args as any);
+      return {
+        content: [{ 
+          type: 'text', 
+          text: JSON.stringify(results, null, 2)
         }]
       };
     default:
