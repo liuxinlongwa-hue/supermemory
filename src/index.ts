@@ -8,6 +8,7 @@ import { SearchEngine } from './memory/search.js';
 import { GraphManager } from './graph/manager.js';
 import { FeedbackManager } from './feedback/manager.js';
 import { ExportManager } from './export/manager.js';
+import { AutoMemory } from './automation/index.js';
 
 dotenv.config();
 
@@ -19,8 +20,12 @@ const exportManager = new ExportManager(db);
 
 const searchEngine = new SearchEngine(db);
 
+const autoMemory = new AutoMemory(db, memoryManager, searchEngine, graphManager, {
+  enabled: process.env.AUTO_MEMORY !== 'false'
+});
+
 const server = new Server(
-  { name: 'supermemory', version: '2.0.0' },
+  { name: 'supermemory', version: '2.1.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -32,26 +37,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: 'object',
         properties: {
-          action: { 
-            type: 'string', 
-            enum: ['add', 'search', 'get', 'delete', 'list', 'mark', 'invalidate'],
-            description: '操作类型'
-          },
+          action: { type: 'string', enum: ['add', 'search', 'get', 'delete', 'list', 'mark', 'invalidate'], description: '操作类型' },
           content: { type: 'string', description: '记忆内容(add)' },
-          type: { 
-            type: 'string', 
-            enum: ['episodic', 'semantic', 'procedural', 'project', 'session', 'habit'],
-            description: '记忆类型(add)'
-          },
+          type: { type: 'string', enum: ['episodic', 'semantic', 'procedural', 'project', 'session', 'habit'], description: '记忆类型(add)' },
           importance: { type: 'number', enum: [0, 1, 2], description: '重要性(add/mark)' },
           query: { type: 'string', description: '搜索词(search)' },
           id: { type: 'string', description: '记忆ID(get/delete/mark/invalidate)' },
           level: { type: 'number', enum: [0, 1, 2], description: '重要性等级(mark)' },
-          list_type: { 
-            type: 'string', 
-            enum: ['project', 'recent', 'important', 'long_term'],
-            description: '列表类型(list)'
-          },
+          list_type: { type: 'string', enum: ['project', 'recent', 'important', 'long_term'], description: '列表类型(list)' },
           project_path: { type: 'string', description: '项目路径(add/list)' },
           hours: { type: 'number', description: '时间范围小时数(list recent)' },
           reason: { type: 'string', description: '失效原因(invalidate)' },
@@ -78,11 +71,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'optimize',
-      description: '优化系统：feedback(反馈) | trigger(触发优化)',
+      description: '优化系统：feedback(反馈) | trigger(触发优化) | cleanup(清理)',
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['feedback', 'trigger'], description: '操作类型' },
+          action: { type: 'string', enum: ['feedback', 'trigger', 'cleanup'], description: '操作类型' },
           memory_id: { type: 'string', description: '记忆ID(feedback)' },
           type: { type: 'string', enum: ['positive', 'negative', 'correction'], description: '反馈类型(feedback)' },
           comment: { type: 'string', description: '评论(feedback)' }
@@ -98,6 +91,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           action: { type: 'string', enum: ['export', 'import'], description: '操作类型' },
           data: { type: 'string', description: 'JSON数据(import)' }
+        },
+        required: ['action']
+      }
+    },
+    {
+      name: 'auto',
+      description: '自动化控制：status(状态) | enable(启用) | disable(禁用)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['status', 'enable', 'disable'], description: '操作类型' }
         },
         required: ['action']
       }
@@ -119,20 +123,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   const a = args as any;
 
+  try {
+    const result = await handleTool(name, a);
+    
+    autoMemory.processMessage('assistant', JSON.stringify(a));
+    
+    return result;
+  } catch (error) {
+    autoMemory.processMessage('assistant', `Error: ${error}`);
+    throw error;
+  }
+});
+
+async function handleTool(name: string, a: any) {
   switch (name) {
     case 'memory': {
       switch (a.action) {
         case 'add': {
-          const id = memoryManager.addMemory({
-            content: a.content,
-            type: a.type,
-            importance: a.importance,
-            project_path: a.project_path
-          });
+          autoMemory.processMessage('user', a.content);
+          const id = memoryManager.addMemory({ content: a.content, type: a.type, importance: a.importance, project_path: a.project_path });
           await searchEngine.indexMemory(id, a.content);
           return { content: [{ type: 'text', text: `✓ 已添加 [${id.slice(0,8)}]` }] };
         }
         case 'search': {
+          autoMemory.processMessage('user', a.query);
           const results = await searchEngine.search({ query: a.query, limit: a.limit || 5 });
           return { content: [{ type: 'text', text: formatMemories(results) || '未找到' }] };
         }
@@ -173,6 +187,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case 'knowledge': {
       switch (a.action) {
         case 'add': {
+          autoMemory.processMessage('user', `${a.subject} ${a.predicate} ${a.object}`);
           let s = graphManager.getEntityByName(a.subject);
           if (!s) s = { id: graphManager.addEntity(a.subject) };
           let o = graphManager.getEntityByName(a.object);
@@ -181,12 +196,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return { content: [{ type: 'text', text: `✓ 已添加关系 [${id.slice(0,8)}]` }] };
         }
         case 'query': {
+          autoMemory.processMessage('user', a.entity);
           const e = graphManager.getEntityByName(a.entity);
           if (!e) return { content: [{ type: 'text', text: '实体未找到' }] };
           const relations = graphManager.queryRelations((e as any).id, a.depth || 1);
-          const formatted = relations.map((r: any) => 
-            `${r.subject_name} --${r.predicate}--> ${r.object_name}`
-          ).join('\n') || '无关系';
+          const formatted = relations.map((r: any) => `${r.subject_name} --${r.predicate}--> ${r.object_name}`).join('\n') || '无关系';
           return { content: [{ type: 'text', text: formatted }] };
         }
         default:
@@ -203,6 +217,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         case 'trigger': {
           const result = feedbackManager.triggerOptimization();
           return { content: [{ type: 'text', text: `✓ 已优化 ${result.processed} 条记忆` }] };
+        }
+        case 'cleanup': {
+          const stats = await autoMemory.runCleanup();
+          return { content: [{ type: 'text', text: stats ? `✓ 清理完成: 过期${stats.expired}, 低质量${stats.lowQuality}, 保留${stats.kept}` : '无需清理' }] };
         }
         default:
           return { content: [{ type: 'text', text: '未知操作' }] };
@@ -225,15 +243,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    case 'auto': {
+      switch (a.action) {
+        case 'status': {
+          const config = autoMemory.getConfig();
+          return { content: [{ type: 'text', text: `自动化记忆: ${autoMemory.isEnabled() ? '✓ 启用' : '✗ 禁用'}\n触发阈值: ${config.triggerThreshold}\n建议阈值: ${config.suggestionThreshold}` }] };
+        }
+        case 'enable': {
+          autoMemory.enable();
+          return { content: [{ type: 'text', text: '✓ 自动化记忆已启用' }] };
+        }
+        case 'disable': {
+          autoMemory.disable();
+          return { content: [{ type: 'text', text: '✓ 自动化记忆已禁用' }] };
+        }
+        default:
+          return { content: [{ type: 'text', text: '未知操作' }] };
+      }
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
-});
+}
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('SuperMemory MCP Server v2.0 running');
+  console.error('SuperMemory MCP Server v2.1 running (auto-memory enabled)');
 }
 
 process.on('SIGINT', () => { db.close(); process.exit(0); });
