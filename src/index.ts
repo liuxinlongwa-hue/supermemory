@@ -3,10 +3,12 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
 import { MemoryDatabase } from './db/database.js';
+import { MemoryManager } from './memory/manager.js';
 
 dotenv.config();
 
 const db = new MemoryDatabase(process.env.MEMORY_DB_PATH);
+const memoryManager = new MemoryManager(db);
 
 const server = new Server(
   {
@@ -50,8 +52,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   
   switch (name) {
     case 'add_memory':
+      const memoryId = memoryManager.addMemory(args as any);
       return {
-        content: [{ type: 'text', text: 'Memory added successfully' }]
+        content: [{ 
+          type: 'text', 
+          text: `Memory added successfully. ID: ${memoryId}` 
+        }]
       };
     default:
       throw new Error(`Unknown tool: ${name}`);
