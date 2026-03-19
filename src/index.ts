@@ -359,6 +359,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'import_memory':
       const importResult = exportManager.importMemory((args as any).data);
+      if (importResult.error) {
+        return {
+          content: [{ type: 'text', text: `Import failed: ${importResult.error}` }]
+        };
+      }
       return {
         content: [{ type: 'text', text: `Import completed. Imported: ${importResult.imported} memories` }]
       };

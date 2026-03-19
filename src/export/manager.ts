@@ -21,8 +21,17 @@ export class ExportManager {
     return JSON.stringify(data, null, 2);
   }
 
-  importMemory(data: string, format: 'json' = 'json'): { imported: number } {
-    const parsed = JSON.parse(data);
+  importMemory(data: string, format: 'json' = 'json'): { imported: number; error?: string } {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(data);
+    } catch (err) {
+      return { imported: 0, error: 'Invalid JSON format' };
+    }
+    
+    if (!parsed || typeof parsed !== 'object') {
+      return { imported: 0, error: 'Invalid data structure' };
+    }
     
     let imported = 0;
 
