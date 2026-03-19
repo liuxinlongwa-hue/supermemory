@@ -41,6 +41,13 @@ export class MemoryDatabase {
           type: 'habit',
           importance: 2,
           created_at: Date.now()
+        },
+        {
+          id: 'default-recall-behavior',
+          content: '每次回答用户问题前，必须先调用 recall 工具检索相关记忆，以便获取上下文信息',
+          type: 'habit',
+          importance: 2,
+          created_at: Date.now()
         }
       ];
 

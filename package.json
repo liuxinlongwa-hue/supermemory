@@ -1,6 +1,6 @@
 {
   "name": "supermemory-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "本地 MCP 记忆服务 - AI 写代码时自动记录，纯本地运行，无需 API Key",
   "main": "dist/index.js",
   "bin": {

@@ -26,12 +26,23 @@ const autoMemory = new AutoMemory(db, memoryManager, searchEngine, graphManager,
 });
 
 const server = new Server(
-  { name: 'supermemory', version: '2.1.0' },
+  { name: 'supermemory', version: '2.2.0' },
   { capabilities: { tools: {} } }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
+    {
+      name: 'recall',
+      description: '🔍 【重要】每次回答用户问题前必须先调用此工具！自动检索相关记忆作为上下文。参数：query(用户的问题或话题)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: '用户的问题或话题' }
+        },
+        required: ['query']
+      }
+    },
     {
       name: 'memory',
       description: '记忆操作：add(添加) | search(搜索) | get(获取) | delete(删除) | list(列表) | mark(标记重要) | invalidate(失效) | clear(清空)',
@@ -138,6 +149,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 async function handleTool(name: string, a: any) {
   switch (name) {
+    case 'recall': {
+      autoMemory.processMessage('user', a.query);
+      const memories = await searchEngine.search({ query: a.query, limit: 5 });
+      if (memories.length === 0) {
+        return { content: [{ type: 'text', text: '📚 无相关记忆' }] };
+      }
+      const formatted = memories.map(m => 
+        `• ${m.content}${m.importance > 0 ? ` [重要${m.importance}]` : ''}`
+      ).join('\n');
+      return { content: [{ type: 'text', text: `📚 相关记忆：\n${formatted}` }] };
+    }
     case 'memory': {
       switch (a.action) {
         case 'add': {

@@ -11,12 +11,20 @@ export interface AddMemoryParams {
   source_content?: string;
 }
 
-const DEFAULT_MEMORY = {
-  id: 'default-output-style',
-  content: '记住信息时只需输出"✅已记住[简短内容]"即可，不要输出分析和解释过程',
-  type: 'habit' as const,
-  importance: 2
-};
+const DEFAULT_MEMORIES = [
+  {
+    id: 'default-output-style',
+    content: '记住信息时只需输出"✅已记住[简短内容]"即可，不要输出分析和解释过程',
+    type: 'habit' as const,
+    importance: 2
+  },
+  {
+    id: 'default-recall-behavior',
+    content: '每次回答用户问题前，必须先调用 recall 工具检索相关记忆，以便获取上下文信息',
+    type: 'habit' as const,
+    importance: 2
+  }
+];
 
 export class MemoryManager {
   constructor(private db: MemoryDatabase) {}
@@ -53,7 +61,8 @@ export class MemoryManager {
   }
 
   deleteMemory(id: string): boolean {
-    if (id === DEFAULT_MEMORY.id) return false;
+    const isDefault = DEFAULT_MEMORIES.some(m => m.id === id);
+    if (isDefault) return false;
     const stmt = this.db.getDb().prepare('DELETE FROM memories WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
@@ -66,17 +75,19 @@ export class MemoryManager {
     this.db.getDb().exec('DELETE FROM entities');
     this.db.getDb().exec('DELETE FROM memories');
     
-    this.insertDefaultMemory();
+    this.insertDefaultMemories();
     
     return { cleared: 0 };
   }
 
-  private insertDefaultMemory() {
+  private insertDefaultMemories() {
     const stmt = this.db.getDb().prepare(`
       INSERT INTO memories (id, content, type, importance, created_at)
       VALUES (?, ?, ?, ?, ?)
     `);
-    stmt.run(DEFAULT_MEMORY.id, DEFAULT_MEMORY.content, DEFAULT_MEMORY.type, DEFAULT_MEMORY.importance, Date.now());
+    for (const memory of DEFAULT_MEMORIES) {
+      stmt.run(memory.id, memory.content, memory.type, memory.importance, Date.now());
+    }
   }
 
   getProjectMemories(projectPath: string) {
