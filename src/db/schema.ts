@@ -61,11 +61,12 @@ CREATE TABLE IF NOT EXISTS feedback (
   created_at INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS vector_index (
+CREATE TABLE IF NOT EXISTS embeddings (
   memory_id TEXT PRIMARY KEY,
-  vector_id TEXT,
-  embedding_model TEXT,
-  dimensions INTEGER,
-  created_at INTEGER NOT NULL
+  embedding BLOB NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE
 );
 `;
+
+export const VECTOR_DIMENSIONS = 384;

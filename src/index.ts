@@ -4,7 +4,6 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import dotenv from 'dotenv';
 import { MemoryDatabase } from './db/database.js';
 import { MemoryManager } from './memory/manager.js';
-import { EmbeddingClient } from './embedding/client.js';
 import { SearchEngine } from './memory/search.js';
 import { GraphManager } from './graph/manager.js';
 import { FeedbackManager } from './feedback/manager.js';
@@ -18,15 +17,7 @@ const graphManager = new GraphManager(db);
 const feedbackManager = new FeedbackManager(db);
 const exportManager = new ExportManager(db);
 
-const embeddingClient = process.env.EMBEDDING_BASE_URL && process.env.EMBEDDING_API_KEY
-  ? new EmbeddingClient({
-      baseUrl: process.env.EMBEDDING_BASE_URL,
-      apiKey: process.env.EMBEDDING_API_KEY,
-      modelId: process.env.EMBEDDING_MODEL_ID || 'text-embedding-v3'
-    })
-  : null;
-
-const searchEngine = new SearchEngine(db, embeddingClient);
+const searchEngine = new SearchEngine(db);
 
 const server = new Server(
   {
@@ -245,6 +236,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (name) {
     case 'add_memory':
       const addId = memoryManager.addMemory(args as any);
+      const addArgs = args as any;
+      await searchEngine.indexMemory(addId, addArgs.content);
       return {
         content: [{ type: 'text', text: `Memory added successfully. ID: ${addId}` }]
       };

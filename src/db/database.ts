@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { SCHEMA } from './schema.js';
+import { SCHEMA, VECTOR_DIMENSIONS } from './schema.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -31,6 +31,51 @@ export class MemoryDatabase {
 
   getDb() {
     return this.db;
+  }
+
+  storeEmbedding(memoryId: string, embedding: number[]): void {
+    const buffer = Buffer.from(new Float32Array(embedding).buffer);
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO embeddings (memory_id, embedding, created_at)
+      VALUES (?, ?, ?)
+    `);
+    stmt.run(memoryId, buffer, Date.now());
+  }
+
+  searchSimilar(queryEmbedding: number[], limit: number = 10): any[] {
+    const rows = this.db.prepare(`
+      SELECT e.memory_id, e.embedding
+      FROM embeddings e
+      JOIN memories m ON e.memory_id = m.id
+      WHERE m.invalidated_at IS NULL
+    `).all() as any[];
+
+    const similarities: { memoryId: string; similarity: number }[] = [];
+
+    for (const row of rows) {
+      const storedEmbedding = Array.from(
+        new Float32Array(row.embedding.buffer)
+      );
+      const similarity = this.cosineSimilarity(queryEmbedding, storedEmbedding);
+      similarities.push({ memoryId: row.memory_id, similarity });
+    }
+
+    similarities.sort((a, b) => b.similarity - a.similarity);
+    return similarities.slice(0, limit);
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   close() {
