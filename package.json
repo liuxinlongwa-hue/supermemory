@@ -1,23 +1,39 @@
 {
-  "name": "supermemory",
+  "name": "supermemory-mcp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
+  "description": "本地 MCP 记忆服务 - AI 写代码时自动记录，纯本地运行，无需 API Key",
+  "main": "dist/index.js",
+  "bin": {
+    "supermemory": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/liuxinlongwa-hue/supermemory.git"
   },
-  "keywords": [],
+  "keywords": [
+    "mcp",
+    "memory",
+    "ai",
+    "claude",
+    "opencode",
+    "local",
+    "vector-search",
+    "knowledge-graph",
+    "model-context-protocol"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/liuxinlongwa-hue/supermemory/issues"
@@ -35,5 +51,8 @@
     "@types/node": "^25.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
